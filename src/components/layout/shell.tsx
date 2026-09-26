@@ -3,17 +3,12 @@
 import { Header } from "./header";
 import { ReactNode } from "react";
 
-export function Shell({
-  children,
-  hideHeader,
-  creditBalance,
-  userName,
-}: {
+interface ShellProps {
   children: ReactNode;
   hideHeader?: boolean;
-  creditBalance?: number | null;
-  userName?: string | null;
-}) {
+}
+
+export function Shell({ children, hideHeader }: ShellProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
       {!hideHeader && <Header />}

@@ -12,22 +12,24 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export default function ProfilePage() {
+  const { user, refresh } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [city, setCity] = useState("");
-  const [balance, setBalance] = useState<number | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
       try {
-        const res = await fetch("/api/credits/balance");
+        const res = await fetch("/api/credits/balance", {
+          credentials: "same-origin",
+        });
         if (res.ok) {
           const data = await res.json();
-          setBalance(data.balance);
           if (data.profile) {
             setName(data.profile.name || "");
             setEmail(data.profile.email || "");
@@ -39,7 +41,7 @@ export default function ProfilePage() {
         /* ignore */
       }
     })();
-  }, []);
+  }, [user]);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -48,6 +50,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ name, mobile, city }),
       });
       if (!res.ok) {
@@ -55,15 +58,24 @@ export default function ProfilePage() {
         return;
       }
       setStatus("Saved");
+      await refresh();
     } catch {
       setStatus("Network error");
     }
   }
 
   return (
-    <Shell creditBalance={balance} userName={name || null}>
+    <Shell>
       <div className="mx-auto w-full max-w-lg space-y-6 px-4 py-8 sm:px-6">
         <h1 className="text-2xl font-bold">Profile</h1>
+        {!user && (
+          <p className="text-sm text-amber-600">
+            Not logged in.{" "}
+            <Link href="/auth/login" className="underline">
+              Log in
+            </Link>
+          </p>
+        )}
         <Card>
           <CardHeader>
             <CardTitle>Account</CardTitle>

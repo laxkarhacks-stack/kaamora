@@ -1,12 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+/**
+ * Refresh Supabase auth session on every matched request.
+ * Without this, cookies go stale and UI looks logged-out.
+ */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return supabaseResponse;
+
+  if (!url || !key) {
+    return supabaseResponse;
+  }
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -25,6 +32,8 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
+  // Important: do not remove — refreshes session
   await supabase.auth.getUser();
+
   return supabaseResponse;
 }

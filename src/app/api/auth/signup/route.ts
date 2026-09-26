@@ -48,6 +48,21 @@ export async function POST(request: NextRequest) {
       void emitEvent({ type: "signup", userId: data.user.id });
     }
 
+    // If email confirm is off but session missing, sign in once
+    if (data.user && !data.session) {
+      const login = await supabase.auth.signInWithPassword({
+        email: parsed.data.email,
+        password: parsed.data.password,
+      });
+      if (!login.error && login.data.session) {
+        return NextResponse.json({
+          ok: true,
+          userId: data.user.id,
+          needsEmailConfirm: false,
+        });
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       userId: data.user?.id,

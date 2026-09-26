@@ -12,8 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export default function LoginPage() {
+  const { refresh } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,6 +37,8 @@ export default function LoginPage() {
         setError(data.error || "Login failed");
         return;
       }
+      await refresh();
+      // Full navigation ensures cookie session is visible everywhere
       window.location.href = "/library";
     } catch {
       setError("Network error — check Supabase env on Vercel");

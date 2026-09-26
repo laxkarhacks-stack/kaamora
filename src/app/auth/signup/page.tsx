@@ -12,8 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export default function SignupPage() {
+  const { refresh } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,11 +39,10 @@ export default function SignupPage() {
         return;
       }
       if (data.needsEmailConfirm) {
-        setError(
-          "Email confirm karo, phir login. Testing: Supabase Auth → Providers → Email → Confirm email OFF."
-        );
+        setError("Check your email to confirm, then log in. (Or disable email confirm in Supabase Auth settings for testing.)");
         return;
       }
+      await refresh();
       window.location.href = "/library";
     } catch {
       setError("Network error — check Supabase env on Vercel");

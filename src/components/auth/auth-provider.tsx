@@ -40,9 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch("/api/credits/balance", {
-        credentials: "same-origin",
-      });
+      // Prefer server balance+profile (works with cookie session)
+      const res = await fetch("/api/credits/balance", { credentials: "same-origin" });
       if (res.ok) {
         const data = await res.json();
         if (data.profile) {
@@ -51,11 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: data.profile.email,
             name: data.profile.name,
           });
-          setBalance(typeof data.balance === "number" ? data.balance : null);
+          setBalance(
+            typeof data.balance === "number" ? data.balance : null
+          );
           setLoading(false);
           return;
         }
       }
+
+      // Fallback: browser supabase session
       try {
         const supabase = createClient();
         const {
@@ -108,6 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void refresh();
+
+    // Keep in sync if session changes in another tab
     let unsub: (() => void) | undefined;
     try {
       const supabase = createClient();
@@ -116,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       unsub = () => data.subscription.unsubscribe();
     } catch {
-      /* env missing */
+      /* env missing in build */
     }
     return () => unsub?.();
   }, [refresh]);
