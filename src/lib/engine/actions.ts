@@ -1,8 +1,6 @@
 /**
  * Action Engine — central gate for all paid actions.
- *
- * Apps call: await Kaamora.run("generate", async () => { ... })
- * Backend is source of truth for cost, trial, and authorization.
+ * Backend is source of truth for cost, trial, credits.
  * Client cannot change price.
  */
 
@@ -12,8 +10,8 @@ import {
   InsufficientCreditsError,
   type DeductResult,
 } from "./credits";
+import { consumeTrial } from "./trial";
 import type { ActionAuthResult } from "@/types";
-import { DEFAULTS } from "@/lib/config";
 import { randomUUID } from "crypto";
 
 export interface AuthorizeActionParams {
@@ -21,7 +19,6 @@ export interface AuthorizeActionParams {
   sessionId: string | null;
   appSlug: string;
   actionName: string;
-  /** Client-provided idempotency key for this specific attempt */
   clientRequestId?: string;
 }
 
@@ -29,18 +26,6 @@ export interface AuthorizeActionResult extends ActionAuthResult {
   deduct?: DeductResult;
 }
 
-/**
- * Authorize a billable action.
- * - Resolves app + action config
- * - Checks trial eligibility if anonymous / first-use
- * - Deducts credits if required (atomic + idempotent)
- * - Records usage event
- *
- * Policy (documented):
- * Authorization happens BEFORE heavy processing.
- * If processing fails after deduction, a controlled refund
- * can be issued by the action result path (Phase 2+).
- */
 export async function authorizeAction(
   params: AuthorizeActionParams
 ): Promise<AuthorizeActionResult> {
@@ -48,7 +33,6 @@ export async function authorizeAction(
   const requestId = clientRequestId || randomUUID();
   const supabase = createServiceClient();
 
-  // Resolve app
   const { data: app, error: appErr } = await supabase
     .from("apps")
     .select("id, status, slug")
@@ -66,7 +50,6 @@ export async function authorizeAction(
     };
   }
 
-  // Resolve action config
   const { data: action, error: actErr } = await supabase
     .from("actions")
     .select("*")
@@ -76,7 +59,14 @@ export async function authorizeAction(
     .maybeSingle();
 
   if (actErr || !action) {
-    // Unknown action → free (not configured as billable)
+    await recordUsage({
+      userId,
+      sessionId,
+      appId: app.id,
+      action: actionName,
+      credits: 0,
+      result: null,
+    });
     return {
       allowed: true,
       cost: 0,
@@ -102,10 +92,9 @@ export async function authorizeAction(
     };
   }
 
-  // Billable path
+  // Billable
   if (!userId) {
-    // Anonymous trial
-    const trialOk = await tryConsumeTrial(sessionId);
+    const trialOk = await consumeTrial({ sessionId, userId: null });
     if (trialOk) {
       await recordUsage({
         userId: null,
@@ -132,7 +121,6 @@ export async function authorizeAction(
     };
   }
 
-  // Authenticated: deduct credits
   try {
     const deduct = await deductCredits({
       userId,
@@ -172,40 +160,6 @@ export async function authorizeAction(
     }
     throw e;
   }
-}
-
-async function tryConsumeTrial(sessionId: string | null): Promise<boolean> {
-  if (!sessionId) return false;
-  const supabase = createServiceClient();
-  const allowance = DEFAULTS.anonymousTrialAllowance;
-
-  const { data: trial } = await supabase
-    .from("trials")
-    .select("*")
-    .eq("visitor_key", sessionId)
-    .maybeSingle();
-
-  if (!trial) {
-    const { error } = await supabase.from("trials").insert({
-      visitor_key: sessionId,
-      usage_count: 1,
-      allowance,
-    });
-    return !error;
-  }
-
-  if (trial.usage_count >= trial.allowance) return false;
-
-  const { error } = await supabase
-    .from("trials")
-    .update({
-      usage_count: trial.usage_count + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", trial.id)
-    .eq("usage_count", trial.usage_count); // optimistic
-
-  return !error;
 }
 
 async function recordUsage(params: {

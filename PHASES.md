@@ -1,37 +1,38 @@
-# Kaamora — implementation vs initial requirement
+# Kaamora — full working source (all phases wired)
 
-Deliver as full source. Env + SQL on Vercel/Supabase required for live auth/DB.
+Deliver as complete source zip. Env + SQL on Vercel/Supabase required for live auth/DB.
 
 ## Phase 1 Foundation
-- Next/TS/Tailwind, shell, design system
+- Next.js 16 / React 19 / TS / Tailwind 4 shell + design system
 - AuthProvider, middleware session refresh
-- Header profile/balance/logout
-- RequireAuth on credits (extend to profile/buy/history)
-- Login/signup with credentials + redirect
+- Header profile icon / balance / logout menu
+- RequireAuth on protected pages
+- Login/signup with credentials + hard redirect
 
 ## Phase 2 Core engine
-- SQL schema + atomic credit RPCs
-- Credit/Action/Trial/Events engines
-- Authorize API, rate-limit helper
+- SQL schema + atomic credit RPCs (idempotent)
+- Credit / Action / Trial / Events engines
+- Authorize + result APIs, rate-limit helper
 
 ## Phase 3 Browser engine
-- WorkerPool, file utils (foundation)
+- WorkerPool foundation, file utils (Blob/ArrayBuffer/Streams)
 
 ## Phase 4 HTML → App
 - Analyzer, analyze/create APIs, admin create UI
-- SDK, /apps/[slug]
+- SDK (`Kaamora.run`), `/apps/[slug]` full-page (no iframe)
 
 ## Phase 5 Admin
-- Dashboard links, Create App, Apps list publish/disable/archive API
+- Dashboard, Apps list publish/disable/archive
+- Users, Credits ledger, Payments, Usage, Trial, Audit
+- Analytics counts, Modules, Settings, Security, Telegram, GitHub
 
 ## Phase 6 User
-- Home, library (live API), auth, profile, credits, buy, history
-- Trial/insufficient credit dialogs components
+- Home, Library (live API), Auth, Profile, Credits, Buy, History, Favorites
 
 ## Phase 7 Payments + integrations
-- Mock gateway create/verify, Telegram/GitHub helpers
+- Mock gateway create/verify (server-side), Telegram + GitHub helpers
 
 ## Phase 8
-- Smoke test script; full automated suite still expand later
+- Analyzer smoke test; expand suite later
 
-Fix what breaks after deploy.
+After deploy: set env vars, run both SQL migrations, test signup → login → profile icon in header.
