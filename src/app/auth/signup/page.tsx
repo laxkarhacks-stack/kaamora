@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Shell } from "@/components/layout/shell";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ import {
 } from "@/components/ui/card";
 
 export default function SignupPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,6 +28,7 @@ export default function SignupPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ name, email, password }),
       });
       const data = await res.json();
@@ -38,13 +37,14 @@ export default function SignupPage() {
         return;
       }
       if (data.needsEmailConfirm) {
-        setError("Check your email to confirm, then log in.");
+        setError(
+          "Email confirm karo, phir login. Testing: Supabase Auth → Providers → Email → Confirm email OFF."
+        );
         return;
       }
-      router.push("/library");
-      router.refresh();
+      window.location.href = "/library";
     } catch {
-      setError("Network error");
+      setError("Network error — check Supabase env on Vercel");
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Shell } from "@/components/layout/shell";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ import {
 } from "@/components/ui/card";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,6 +27,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
@@ -36,10 +35,9 @@ export default function LoginPage() {
         setError(data.error || "Login failed");
         return;
       }
-      router.push("/library");
-      router.refresh();
+      window.location.href = "/library";
     } catch {
-      setError("Network error");
+      setError("Network error — check Supabase env on Vercel");
     } finally {
       setLoading(false);
     }
